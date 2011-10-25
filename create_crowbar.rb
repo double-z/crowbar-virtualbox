@@ -78,7 +78,7 @@ def createvbox(os=:ubuntu,x64=false)
   #vbox.description="A Box to Remember"
   
   vbox.memory_size = 1024 #I want to run a few of these  
-  vbox.ostype = "Ubuntu_64"
+  vbox.os_type_id = "Ubuntu"
   vbox.vram_size = 12 #just enough for fullscreen + 2d accel
   vbox.accelerate_2d_video_enabled=false #needed?
   vbox.audio_adapter.enabled=false # not needed
@@ -90,8 +90,8 @@ def createvbox(os=:ubuntu,x64=false)
   newhd.logical_size=10*gigabyte
   newhd.save     
   
-  #ok, we have to have the iso registered
-  crowbar_iso = VirtualBox::DVD.all.select { |dvd| dvd.location =~ /openstack111014/ }.first
+  #ok, we have to have the iso registered (skip this we use the last line to shell out and add it) 
+  #crowbar_iso = VirtualBox::DVD.all.select { |dvd| dvd.location =~ /openstack111014/ }.first
 
   controller_name='IDE Controller'
   vbox.with_open_session do |session|
@@ -105,7 +105,8 @@ def createvbox(os=:ubuntu,x64=false)
     #machine.create_shared_folder 'Tmp', '/tmp', true, true
     machine.add_storage_controller controller_name, :ide
     machine.attach_device(controller_name, 0, 0, :hard_disk, newhd.interface)
-    machine.attach_device(controller_name, 0, 1, :dvd, crowbar_iso.interface) 
+    #ok, we have to have the iso registered (skip this we use the last line to shell out and add it) 
+    #machine.attach_device(controller_name, 0, 1, :dvd, crowbar_iso.interface) 
   end
 
   vbox.storage_controllers[0].controller_type = :piix3 #or :piix4, :ich6
@@ -133,11 +134,11 @@ def createvbox(os=:ubuntu,x64=false)
   nic.enabled = true
   nic.save   
   
-  # nic = vbox.network_adapters[1]
-  # nic.attachment_type = :host_only
-  # nic.host_only_interface = 'vboxnet1'
-  # nic.enabled = true
-  # nic.save   
+  nic = vbox.network_adapters[1]
+  nic.attachment_type = :host_only
+  nic.host_only_interface = 'vboxnet1'
+  nic.enabled = true
+  nic.save   
   
   
   # we should be able to ssh localhost -P <the 5 digits of after randomname>
@@ -164,9 +165,14 @@ def createvbox(os=:ubuntu,x64=false)
   # end
 
   vbox.save
-  
+
+  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /root/iso-images/openstack111014.iso`  
 end    
 
-createvbox
+createvbox   
+
+# add the iso:
+
+
 
 
