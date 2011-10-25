@@ -1,5 +1,68 @@
+require 'rubygems'
 require 'virtualbox'
-require 'fileutils'
+require 'fileutils'   
+
+module VirtualBox
+  class VM 
+    
+    class << self
+
+       # Creates and registers a new VM, and returns a
+       # new VM object.
+       #
+       # @return [VM]
+       def create(name)
+         settings = VirtualBox::Lib.lib.virtualbox.compose_machine_filename(name)
+         imachine = VirtualBox::Lib.lib.virtualbox.create_machine(settings, name)
+         VirtualBox::Lib.lib.virtualbox.register_machine(imachine)
+         return VirtualBox::VM.new(imachine)
+       end
+    end
+  end 
+  
+  class HardDrive
+    def validate
+      super
+
+      medium_formats = Global.global.system_properties.medium_formats.collect { |mf| mf.id }
+      validates_inclusion_of :format, :in => medium_formats, :message => "must be one of the following: #{medium_formats.join(', ')}."
+
+      validates_presence_of :location
+
+      max_vdi_size = Global.global.system_properties.info_vd_size
+      validates_inclusion_of :logical_size, :in => (0..max_vdi_size), :message => "must be between 0 and #{max_vdi_size}."
+    end
+    
+    def create_hard_disk_medium(outputfile, format = nil)
+      # Get main VirtualBox object
+      virtualbox = Lib.lib.virtualbox
+
+      # Assign the default format if it isn't set yet
+      format ||= virtualbox.system_properties.default_hard_disk_format
+
+      # Expand path relative to the default hard disk folder. This allows
+      # filenames to exist in the default folder while full paths will use
+      # the paths specified.
+      # outputfile = File.expand_path(outputfile, virtualbox.system_properties.default_hard_disk_folder)
+      outputfile = File.expand_path(outputfile, virtualbox.system_properties.default_machine_folder)
+
+      # If the outputfile path is in use by another Hard Drive, lets fail
+      # now with a meaningful exception rather than simply return a nil
+      raise Exceptions::MediumLocationInUseException.new(outputfile) if File.exist?(outputfile)
+
+      # Create the new {COM::Interface::Medium} instance.
+      new_medium = virtualbox.create_hard_disk(format, outputfile)
+
+      # Raise an error if the creation of the {COM::Interface::Medium}
+      # instance failed
+      raise Exceptions::MediumCreationFailedException.new unless new_medium
+
+      # Return the new {COM::Interface::Medium} instance.
+      new_medium
+    end
+    
+  end
+end    
 
 def createvbox(os=:ubuntu,x64=false)
   boxnum = rand.to_s[2..4+1].to_i
@@ -12,9 +75,10 @@ def createvbox(os=:ubuntu,x64=false)
   end
 
   vbox = VirtualBox::VM.create boxname
-  vbox.description="A Box to Remember"
+  #vbox.description="A Box to Remember"
   
-  vbox.memory_size = 1024 #I want to run a few of these
+  vbox.memory_size = 1024 #I want to run a few of these  
+  vbox.os_type_id = "Ubuntu"
   vbox.vram_size = 12 #just enough for fullscreen + 2d accel
   vbox.accelerate_2d_video_enabled=false #needed?
   vbox.audio_adapter.enabled=false # not needed
@@ -24,24 +88,15 @@ def createvbox(os=:ubuntu,x64=false)
   newhd.location=File.join(File.dirname(vbox.settings_file_path),vbox.name+'.vdi') #within the VM dir
   gigabyte=1000*1000*1024
   newhd.logical_size=10*gigabyte
-  newhd.save
-
-  controller_name='Ye Olde IDE Controller'
+  newhd.save     
+  
+  controller_name='Sata Controller'
   vbox.with_open_session do |session|
     machine = session.machine
-    #possibly change the screen on each boot... for demo?
-    #machine.bios_settings.logo_image_path='/var/www/ii.bmp' #256/8bit BMP
     machine.bios_settings.pxe_debug_enabled=true
-    #machine.create_shared_folder 'Sharename', '/path', RW?, Automount?
-    #machine.create_shared_folder 'HostRoot', '/', false, true
-    #machine.create_shared_folder 'Unattended', '/var/unattended/install', false, true
-    #machine.create_shared_folder 'Tmp', '/tmp', true, true
-    machine.add_storage_controller controller_name, :ide
+    machine.add_storage_controller controller_name, :sata
     machine.attach_device(controller_name, 0, 0, :hard_disk, newhd.interface)
-    machine.attach_device(controller_name, 0, 1, :dvd, nil) 
   end
-
-  vbox.storage_controllers[0].controller_type = :ich6 #or :piix4
 
   # this will boot from nerk only if we can't boot from disk
   vbox.boot_order=[:hard_disk ,:network,:null,:null]
@@ -61,34 +116,32 @@ def createvbox(os=:ubuntu,x64=false)
 
   # This is what we do when we want to test a real pxe implementation
   nic = vbox.network_adapters[0]
-  nic.attachment_type = :bridged
-  nic.bridged_interface = 'eth0'
+  nic.attachment_type = :host_only
+  nic.host_only_interface = 'vboxnet0'
   nic.enabled = true
-  nic.save
+  nic.save   
   
-  # we should be able to ssh localhost -P <the 5 digits of after randomname>
-
-  port = VirtualBox::NATForwardedPort.new
-  port.name = 'ssh'
-  port.guestport = 22
-  port.hostport = boxnum
-  port.protocol = :tcp
-  vbox.network_adapters[0].nat_driver.forwarded_ports << port
-  # Thank you Taylor for this:
-  # "0800273B51A9".taylor_ruby_foo() # => "08-00-27-3B-51-A9" 
-  tftp_conffile = "01-#{nic.mac_address.split(/(..)/).reject do|c| c.empty? end.join('-').downcase}"
-  if os == :ubuntu and x64
-    vbox.os_type_id="Ubuntu_64"
-    File.symlink '/var/www/pxelinux.cfg/default-ubuntu64', "/var/www/pxelinux.cfg/#{tftp_conffile}"
-    # not needed anymore, as we just boot pxelinux.0 and use the same tftpprefix everytime now!!
-    #vbox.extra_data['VBoxInternal/Devices/pcnet/0/LUN#0/Config/TFTPPrefix']='/var/www/ubuntu-installer/amd64'
-  else # default os == :ubuntu i632
-    vbox.os_type_id="Ubuntu"
-    File.symlink '/var/www/pxelinux.cfg/default-ubuntu', "/var/www/pxelinux.cfg/#{tftp_conffile}"
-    #vbox.extra_data['VBoxInternal/Devices/pcnet/0/LUN#0/Config/TFTPPrefix']='/var/www/ubuntu-installer/i386'
-    #vbox.extra_data['VBoxInternal/Devices/pcnet/0/LUN#0/Config/TFTPPrefix']='/var/www/pxe_dust'
-  end
-
-  vbox.save
+  nic = vbox.network_adapters[1]
+  nic.attachment_type = :host_only
+  nic.host_only_interface = 'vboxnet1'
+  nic.enabled = true
+  nic.save   
   
-end
+  vbox.save  
+  # --ioapic on for the centos pxe boot
+  `VBoxManage modifyvm #{boxname} --vrdeport 5010-5020 --ioapic on` 
+  
+  
+  vbox 
+end    
+
+box = createvbox   
+
+puts "created new box #{box.name}"
+puts "start it with VBoxHeadless -s #{box.name}"
+
+# add the iso:
+
+
+
+

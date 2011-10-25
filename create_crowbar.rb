@@ -93,7 +93,7 @@ def createvbox(os=:ubuntu,x64=false)
   #ok, we have to have the iso registered (skip this we use the last line to shell out and add it) 
   #crowbar_iso = VirtualBox::DVD.all.select { |dvd| dvd.location =~ /openstack111014/ }.first
 
-  controller_name='IDE Controller'
+  controller_name='Sata Controller'
   vbox.with_open_session do |session|
     machine = session.machine
     #possibly change the screen on each boot... for demo?
@@ -102,8 +102,9 @@ def createvbox(os=:ubuntu,x64=false)
     #machine.create_shared_folder 'Sharename', '/path', RW?, Automount?
     #machine.create_shared_folder 'HostRoot', '/', false, true
     #machine.create_shared_folder 'Unattended', '/var/unattended/install', false, true
-    #machine.create_shared_folder 'Tmp', '/tmp', true, true
-    machine.add_storage_controller controller_name, :ide
+    #machine.create_shared_folder 'Tmp', '/tmp', true, true   
+    machine.add_storage_controller "IDE Controller", :ide # for the iso boot
+    machine.add_storage_controller controller_name, :sata
     machine.attach_device(controller_name, 0, 0, :hard_disk, newhd.interface)
     #ok, we have to have the iso registered (skip this we use the last line to shell out and add it) 
     #machine.attach_device(controller_name, 0, 1, :dvd, crowbar_iso.interface) 
@@ -165,11 +166,18 @@ def createvbox(os=:ubuntu,x64=false)
   # end
 
   vbox.save
-
-  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /root/iso-images/openstack111014.iso`  
+     
+     
+#  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /root/iso-images/openstack111014.iso`  
+  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /Users/ehaselwanter/Desktop/Inbox/openstack111014.iso` 
+  
+  vbox 
 end    
 
-createvbox   
+box = createvbox   
+
+puts "created new box #{box.name}"
+puts "start it with VBoxHeadless -s #{box.name}"
 
 # add the iso:
 
