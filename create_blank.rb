@@ -2,6 +2,10 @@ require 'rubygems'
 require 'virtualbox'
 require 'fileutils'   
 
+# monkey patch from https://github.com/hh/virtualbox/blob/da76afa639e11fcd9f0ab4a816876fb5bd30d579/lib/virtualbox/hard_drive.rb  
+
+# needs some serious cleanup
+
 module VirtualBox
   class VM 
     
