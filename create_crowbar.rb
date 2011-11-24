@@ -81,7 +81,7 @@ def createvbox(os=:ubuntu,x64=false)
   vbox = VirtualBox::VM.create boxname
   #vbox.description="A Box to Remember"
   
-  vbox.memory_size = 1024 #I want to run a few of these  
+  vbox.memory_size = 4096 #I want to run a few of these  
   vbox.os_type_id = "Ubuntu"
   vbox.vram_size = 12 #just enough for fullscreen + 2d accel
   vbox.accelerate_2d_video_enabled=false #needed?
@@ -91,7 +91,7 @@ def createvbox(os=:ubuntu,x64=false)
   newhd=VirtualBox::HardDrive.new
   newhd.location=File.join(File.dirname(vbox.settings_file_path),vbox.name+'.vdi') #within the VM dir
   gigabyte=1000*1000*1024
-  newhd.logical_size=10*gigabyte
+  newhd.logical_size=40*gigabyte
   newhd.save     
   
   #ok, we have to have the iso registered (skip this we use the last line to shell out and add it) 
@@ -173,7 +173,7 @@ def createvbox(os=:ubuntu,x64=false)
      
      
 #  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /root/iso-images/openstack111014.iso`  
-  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /Users/ehaselwanter/Desktop/Inbox/openstack111014.iso` 
+  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /root/iso-images/openstack111111.iso` 
   
   vbox 
 end    

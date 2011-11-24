@@ -81,7 +81,7 @@ def createvbox(os=:ubuntu,x64=false)
   vbox = VirtualBox::VM.create boxname
   #vbox.description="A Box to Remember"
   
-  vbox.memory_size = 1024 #I want to run a few of these  
+  vbox.memory_size = 4096 #I want to run a few of these  
   vbox.os_type_id = "Ubuntu"
   vbox.vram_size = 12 #just enough for fullscreen + 2d accel
   vbox.accelerate_2d_video_enabled=false #needed?
@@ -91,7 +91,7 @@ def createvbox(os=:ubuntu,x64=false)
   newhd=VirtualBox::HardDrive.new
   newhd.location=File.join(File.dirname(vbox.settings_file_path),vbox.name+'.vdi') #within the VM dir
   gigabyte=1000*1000*1024
-  newhd.logical_size=10*gigabyte
+  newhd.logical_size=40*gigabyte
   newhd.save     
   
   controller_name='Sata Controller'
