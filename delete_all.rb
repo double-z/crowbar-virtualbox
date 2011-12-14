@@ -14,6 +14,8 @@ running_vms.each do |vm|
   puts "stopped #{vm}"	
 end
 
+sleep 10
+
 all_vms.each do |vm|
   puts "deleting #{vm}" 
   %x[VBoxManage unregistervm #{vm} --delete]
