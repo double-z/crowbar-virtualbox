@@ -69,12 +69,12 @@ module VirtualBox
 end    
 
 def createvbox(os=:ubuntu,x64=false)
-  boxnum = rand.to_s[2..4+1].to_i
+  #boxnum = rand.to_s[2..4+1].to_i
   if os == :ubuntu 
     if x64
-      boxname="ubuntu64_#{boxnum}"
+      boxname="crowbar_admin_64"
     else
-      boxname="ubuntu__#{boxnum}" 
+      boxname="crowbar_admin" 
     end
   end
 
@@ -173,7 +173,7 @@ def createvbox(os=:ubuntu,x64=false)
      
      
 #  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /root/iso-images/openstack111014.iso`  
-  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /root/iso-images/openstack111111.iso` 
+  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /root/crowbar/crowbar-cactus-1527-gcf52522-dev.iso` 
   
   vbox 
 end    
