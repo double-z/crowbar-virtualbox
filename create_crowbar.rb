@@ -173,7 +173,7 @@ def createvbox(os=:ubuntu,x64=false)
      
      
 #  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /root/iso-images/openstack111014.iso`  
-  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /root/crowbar/crowbar-cactus-1527-gcf52522-dev.iso` 
+  `VBoxManage storageattach #{boxname} --storagectl "IDE Controller" --device 0 --port 0 --type dvddrive --medium /root/crowbar/crowbar-cactus-1534-g4468ce1-dev.iso` 
   
   vbox 
 end    

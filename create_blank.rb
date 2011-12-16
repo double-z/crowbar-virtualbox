@@ -81,7 +81,7 @@ def createvbox(os=:ubuntu,x64=false)
   vbox = VirtualBox::VM.create boxname
   #vbox.description="A Box to Remember"
   
-  vbox.memory_size = 4096 #I want to run a few of these  
+  vbox.memory_size = 2048 #I want to run a few of these  
   vbox.os_type_id = "Ubuntu"
   vbox.vram_size = 12 #just enough for fullscreen + 2d accel
   vbox.accelerate_2d_video_enabled=false #needed?
@@ -93,6 +93,11 @@ def createvbox(os=:ubuntu,x64=false)
   gigabyte=1000*1000*1024
   newhd.logical_size=40*gigabyte
   newhd.save     
+
+  newhd1=VirtualBox::HardDrive.new
+  newhd1.location=File.join(File.dirname(vbox.settings_file_path),vbox.name+'1.vdi') #within the VM dir
+  newhd1.logical_size=40*gigabyte
+  newhd1.save
   
   controller_name='Sata Controller'
   vbox.with_open_session do |session|
@@ -100,6 +105,7 @@ def createvbox(os=:ubuntu,x64=false)
     machine.bios_settings.pxe_debug_enabled=true
     machine.add_storage_controller controller_name, :sata
     machine.attach_device(controller_name, 0, 0, :hard_disk, newhd.interface)
+    machine.attach_device(controller_name, 1, 0, :hard_disk, newhd1.interface)
   end
 
   # this will boot from nerk only if we can't boot from disk
